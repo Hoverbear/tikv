@@ -18,8 +18,9 @@ use storage::engine::{Modify, ScanMode, Snapshot};
 use super::reader::MvccReader;
 use super::lock::{Lock, LockType};
 use super::write::{Write, WriteType};
-use super::{Error, Result};
+use super::Error;
 use super::metrics::*;
+use Result;
 use kvproto::kvrpcpb::IsolationLevel;
 
 pub const MAX_TXN_WRITE_SIZE: usize = 32 * 1024;

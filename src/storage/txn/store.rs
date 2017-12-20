@@ -13,7 +13,8 @@
 
 use storage::{Key, KvPair, ScanMode, Snapshot, Statistics, Value};
 use storage::mvcc::{Error as MvccError, MvccReader};
-use super::{Error, Result};
+use super::Error;
+use Result;
 use kvproto::kvrpcpb::IsolationLevel;
 
 pub struct SnapshotStore {

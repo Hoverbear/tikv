@@ -15,7 +15,8 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, ErrorKind, Read, Write};
 use std::mem;
 
-use super::{Error, Result};
+use super::Error;
+use Result;
 
 const SIGN_MARK: u64 = 0x8000000000000000;
 pub const MAX_VAR_I64_LEN: usize = 10;
@@ -175,7 +176,7 @@ pub trait NumberDecoder: Read {
                 if i > 9 || i == 9 && b > 1 {
                     return Err(Error::Io(
                         io::Error::new(ErrorKind::InvalidData, "overflow"),
-                    ));
+                    )).into();
                 }
                 return Ok(x | ((b as u64) << s));
             }

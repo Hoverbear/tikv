@@ -15,7 +15,8 @@ use byteorder::ReadBytesExt;
 use storage::{Mutation, SHORT_VALUE_MAX_LEN, SHORT_VALUE_PREFIX};
 use util::codec::number::{MAX_VAR_U64_LEN, NumberDecoder, NumberEncoder};
 use util::codec::bytes::{BytesEncoder, CompactBytesDecoder};
-use super::{Error, Result};
+use super::Error;
+use Result;
 use super::super::types::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

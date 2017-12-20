@@ -15,8 +15,9 @@ use byteorder::ReadBytesExt;
 use util::codec::number::{MAX_VAR_U64_LEN, NumberDecoder, NumberEncoder};
 use storage::{SHORT_VALUE_MAX_LEN, SHORT_VALUE_PREFIX};
 use super::lock::LockType;
-use super::{Error, Result};
+use super::Error;
 use super::super::types::Value;
+use Result;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WriteType {

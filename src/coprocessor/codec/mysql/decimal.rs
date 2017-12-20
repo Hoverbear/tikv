@@ -24,7 +24,9 @@ use byteorder::ReadBytesExt;
 use coprocessor::select::xeval::EvalContext;
 use util::codec::bytes::BytesDecoder;
 use util::escape;
-use coprocessor::codec::{convert, Error, Result, TEN_POW};
+use coprocessor::codec::{convert, Error, TEN_POW};
+use failure;
+use Result;
 
 // TODO: We should use same Error in mod `coprocessor`.
 use coprocessor::dag::expr::Error as ExprError;
@@ -1698,7 +1700,7 @@ fn first_non_digit(bs: &[u8], start_idx: usize) -> usize {
 }
 
 impl FromStr for Decimal {
-    type Err = Error;
+    type Err = failure::Error;
 
     fn from_str(s: &str) -> Result<Decimal> {
         match Decimal::from_bytes(s.as_bytes())? {

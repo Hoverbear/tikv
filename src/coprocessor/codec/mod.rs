@@ -11,7 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use util::codec::{Error, Result};
+pub use util::codec::Error;
+use Result;
 
 const TEN_POW: &'static [u32] = &[
     1,

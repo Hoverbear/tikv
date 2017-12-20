@@ -42,6 +42,7 @@ use server::metrics::*;
 use server::Error;
 use raftstore::store::Msg as StoreMessage;
 use coprocessor::{EndPointTask, RequestTask};
+use Result;
 
 const SCHEDULER_IS_BUSY: &'static str = "scheduler is busy";
 
@@ -996,7 +997,7 @@ impl<T: RaftStoreRouter + 'static> tikvpb_grpc::Tikv for Service<T> {
     }
 }
 
-fn extract_region_error<T>(res: &storage::Result<T>) -> Option<RegionError> {
+fn extract_region_error<T>(res: &Result<T>) -> Option<RegionError> {
     use storage::Error;
     match *res {
         // TODO: use `Error::cause` instead.
@@ -1054,7 +1055,7 @@ fn extract_key_error(err: &storage::Error) -> KeyError {
     key_error
 }
 
-fn extract_kv_pairs(res: storage::Result<Vec<storage::Result<storage::KvPair>>>) -> Vec<KvPair> {
+fn extract_kv_pairs(res: Result<Vec<Result<storage::KvPair>>>) -> Vec<KvPair> {
     match res {
         Ok(res) => res.into_iter()
             .map(|r| match r {
@@ -1126,7 +1127,7 @@ fn extract_2pc_writes(res: Vec<(u64, MvccWrite)>) -> Vec<WriteInfo> {
         .collect()
 }
 
-fn extract_key_errors(res: storage::Result<Vec<storage::Result<()>>>) -> Vec<KeyError> {
+fn extract_key_errors(res: Result<Vec<Result<()>>>) -> Vec<KeyError> {
     match res {
         Ok(res) => res.into_iter()
             .filter_map(|x| match x {

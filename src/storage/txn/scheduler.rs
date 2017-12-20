@@ -56,7 +56,7 @@ use util::threadpool::{Context as ThreadContext, ThreadPool, ThreadPoolBuilder};
 use util::time::SlowTimer;
 use util::collections::HashMap;
 
-use super::Result;
+use Result;
 use super::Error;
 use super::store::SnapshotStore;
 use super::latch::{Latches, Lock};

@@ -13,7 +13,8 @@
 
 use std::io::{Read, Write};
 
-use super::{Error, Result};
+use super::Error;
+use Result;
 use util::codec::number::{NumberDecoder, NumberEncoder};
 
 const ENC_GROUP_SIZE: usize = 8;

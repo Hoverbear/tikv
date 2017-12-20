@@ -16,7 +16,7 @@ use kvproto::coprocessor::KeyRange;
 use coprocessor::endpoint::prefix_next;
 use coprocessor::codec::table::truncate_as_row_key;
 use storage::{Key, ScanMode, SnapshotStore, Statistics, StoreScanner, Value};
-use storage::txn::Result;
+use Result;
 use util::escape;
 
 #[derive(Copy, Clone)]

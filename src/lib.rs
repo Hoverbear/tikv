@@ -96,3 +96,5 @@ pub mod server;
 pub mod coprocessor;
 
 pub use storage::Storage;
+
+pub type Result<T> = ::std::result::Result<T, failure::Error>;

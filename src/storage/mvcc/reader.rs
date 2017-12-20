@@ -13,9 +13,10 @@
 
 use storage::engine::{Cursor, ScanMode, Snapshot, Statistics};
 use storage::{Key, Value, CF_LOCK, CF_WRITE};
-use super::{Error, Result};
+use super::Error;
 use super::lock::Lock;
 use super::write::{Write, WriteType};
+use Result;
 use raftstore::store::engine::IterOption;
 use std::u64;
 use kvproto::kvrpcpb::IsolationLevel;

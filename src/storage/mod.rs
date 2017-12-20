@@ -39,6 +39,7 @@ pub use self::engine::raftkv::RaftKv;
 use self::mvcc::Lock;
 pub use self::txn::{Msg, Scheduler, SnapshotStore, StoreScanner};
 pub use self::types::{make_key, Key, KvPair, MvccInfo, Value};
+use Result;
 pub type Callback<T> = Box<FnBox(Result<T>) + Send>;
 
 pub type CfName = &'static str;
@@ -941,8 +942,6 @@ pub enum Error {
     #[fail(display = "max key size exceeded, size: {}, limit: {}", size, limit)]
     KeyTooLarge { size: usize, limit: usize },
 }
-
-pub type Result<T> = ::std::result::Result<T, Error>;
 
 pub fn get_tag_from_header(header: &errorpb::Error) -> &'static str {
     if header.has_not_leader() {

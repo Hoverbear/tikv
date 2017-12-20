@@ -38,6 +38,7 @@ use coprocessor::codec::Datum;
 use util;
 use util::codec::number::NumberDecoder;
 use util::codec::Error as CError;
+use Result;
 
 pub use coprocessor::select::xeval::EvalContext as StatementContext;
 
@@ -71,8 +72,6 @@ impl From<Utf8Error> for Error {
         Error::Codec(CError::Encoding(err.into()))
     }
 }
-
-pub type Result<T> = ::std::result::Result<T, Error>;
 
 impl<T> Into<Result<T>> for Res<T> {
     fn into(self) -> Result<T> {

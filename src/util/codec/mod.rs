@@ -59,5 +59,3 @@ impl From<FromUtf8Error> for Error {
         err.utf8_error().into()
     }
 }
-
-pub type Result<T> = ::std::result::Result<T, Error>;

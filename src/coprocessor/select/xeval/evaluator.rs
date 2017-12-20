@@ -26,7 +26,8 @@ use coprocessor::codec;
 use coprocessor::codec::datum::{Datum, DatumDecoder};
 use coprocessor::codec::mysql::{DecimalDecoder, Duration, ModifyType, Time, MAX_FSP};
 use coprocessor::codec::mysql::json::{json_array, json_object};
-use super::{Error, Result};
+use super::Error;
+use Result;
 
 /// Flags are used by `SelectRequest.flags` to handle execution mode, like how to handle
 /// truncate error.
@@ -378,7 +379,7 @@ impl Evaluator {
 
     fn eval_arith<F>(&mut self, ctx: &EvalContext, expr: &Expr, f: F) -> Result<Datum>
     where
-        F: FnOnce(Datum, &EvalContext, Datum) -> codec::Result<Datum>,
+        F: FnOnce(Datum, &EvalContext, Datum) -> Result<Datum>,
     {
         let (left, right) = self.eval_two_children(ctx, expr)?;
         eval_arith(ctx, left, right, f)
@@ -646,7 +647,7 @@ fn eval_or(lhs: Option<bool>, rhs: Option<bool>) -> Datum {
 #[inline]
 pub fn eval_arith<F>(ctx: &EvalContext, left: Datum, right: Datum, f: F) -> Result<Datum>
 where
-    F: FnOnce(Datum, &EvalContext, Datum) -> codec::Result<Datum>,
+    F: FnOnce(Datum, &EvalContext, Datum) -> Result<Datum>,
 {
     let left = left.into_arith(ctx)?;
     let right = right.into_arith(ctx)?;

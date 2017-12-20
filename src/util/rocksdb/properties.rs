@@ -23,8 +23,9 @@ use storage::types;
 use raftstore::store::keys;
 use rocksdb::{DBEntryType, TablePropertiesCollector, TablePropertiesCollectorFactory,
               UserCollectedProperties};
-use util::codec::{Error, Result};
+use util::codec::Error;
 use util::codec::number::{NumberDecoder, NumberEncoder};
+use Result;
 
 const PROP_NUM_ERRORS: &'static str = "tikv.num_errors";
 const PROP_MIN_TS: &'static str = "tikv.min_ts";
@@ -436,7 +437,7 @@ impl DecodeProperties for UserProperties {
         match self.0.get(k.as_bytes()) {
             Some(v) => Ok(v.as_slice()),
             None => Err(Error::KeyNotFound),
-        }
+        }.into()
     }
 }
 
@@ -445,7 +446,7 @@ impl DecodeProperties for UserCollectedProperties {
         match self.get(k.as_bytes()) {
             Some(v) => Ok(v),
             None => Err(Error::KeyNotFound),
-        }
+        }.into()
     }
 }
 
