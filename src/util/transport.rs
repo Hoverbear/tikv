@@ -23,24 +23,14 @@ use mio;
 
 const MAX_SEND_RETRY_CNT: usize = 5;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Discard(reason: String) {
-            description("message is discarded")
-            display("{}", reason)
-        }
-        Closed {
-            description("channel is closed")
-            display("channel is closed")
-        }
-        Other(err: Box<error::Error + Send + Sync>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "{}", _0)]
+    Discard(String),
+    #[fail(display = "channel is closed")]
+    Closed,
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Send + Sync>),
 }
 
 impl<T: Debug> From<NotifyError<T>> for Error {

@@ -25,55 +25,35 @@ pub use self::lock::{Lock, LockType};
 pub use self::write::{Write, WriteType};
 use util::escape;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Engine(err: ::storage::engine::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Io(err: io::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Codec(err: ::util::codec::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        KeyIsLocked {key: Vec<u8>, primary: Vec<u8>, ts: u64, ttl: u64} {
-            description("key is locked (backoff or cleanup)")
-            display("key is locked (backoff or cleanup) {}-{}@{} ttl {}",
-                        escape(key),
-                        escape(primary),
-                        ts,
-                        ttl)
-        }
-        BadFormatLock {description("bad format lock data")}
-        BadFormatWrite {description("bad format write data")}
-        Committed {commit_ts: u64} {
-            description("txn already committed")
-            display("txn already committed @{}", commit_ts)
-        }
-        TxnLockNotFound {start_ts: u64, commit_ts: u64, key: Vec<u8> } {
-            description("txn lock not found")
-            display("txn lock not found {}-{} key:{:?}", start_ts, commit_ts, key)
-        }
-        WriteConflict { start_ts: u64, conflict_ts: u64, key: Vec<u8>, primary: Vec<u8> } {
-            description("write conflict")
-            display("write conflict {} with {}, key:{:?}, primary:{:?}",
-             start_ts, conflict_ts, key, primary)
-        }
-        KeyVersion {description("bad format key(version)")}
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("{:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "engine error: {:?}", _0)]
+    Engine(#[cause] ::storage::engine::Error),
+    #[fail(display = "io error: {:?}", _0)]
+    Io(#[cause] io::Error),
+    #[fail(display = "codec error: {:?}", _0)]
+    Codec(#[cause] ::util::codec::Error),
+    #[fail(display = "key is locked (backoff or cleanup) {}-{}@{} ttl {}",
+                    key,
+                    primary,
+                    ts,
+                    ttl)]
+    KeyIsLocked { key: Vec<u8>, primary: Vec<u8>, ts: u64, ttl: u64},
+    #[fail(display = "bad format lock data")]
+    BadFormatLock,
+    #[fail(display = "bad format write data")]
+    BadFormatWrite,
+    #[fail(display = "txn already committed @{}", commit_ts)]
+    Committed { commit_ts: u64 },
+    #[fail(display = "txn lock not found {}-{} key:{:?}", start_ts, commit_ts, key)]
+    TxnLockNotFound { start_ts: u64, commit_ts: u64, key: Vec<u8> },
+    #[fail(display = "write conflict {} with {}, key:{:?}, primary:{:?}",
+            start_ts, conflict_ts, key, primary)]
+    WriteConflict { start_ts: u64, conflict_ts: u64, key: Vec<u8>, primary: Vec<u8> },
+    #[fail(display = "bad format key(version)")]
+    KeyVersion,
+    #[fail(display = "{:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 impl Error {

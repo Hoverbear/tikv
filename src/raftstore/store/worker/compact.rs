@@ -40,16 +40,10 @@ impl Display for Task {
     }
 }
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("compact failed {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "compact failed {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 pub struct Runner {

@@ -27,30 +27,18 @@ use kvproto::errorpb;
 use storage::{engine, mvcc, txn};
 use util::time::Instant;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Region(err: errorpb::Error) {
-            description("region related failure")
-            display("region {:?}", err)
-        }
-        Locked(l: LockInfo) {
-            description("key is locked")
-            display("locked {:?}", l)
-        }
-        Outdated(deadline: Instant, now: Instant, tag: &'static str) {
-            description("request is outdated")
-        }
-        Full(allow: usize) {
-            description("running queue is full")
-        }
-        Other(err: Box<error::Error + Send + Sync>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "region {:?}", _0)]
+    Region(#[cause] errorpb::Error),
+    #[fail(display = "locked {:?}", _0)]
+    Locked(LockInfo),
+    #[fail(display = "request is outdated")]
+    Outdated { deadline: Instant, now: Instant, tag: &'static str },
+    #[fail(display = "running queue is full")]
+    Full(usize),
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Send + Sync>),
 }
 
 pub type Result<T> = result::Result<T, Error>;

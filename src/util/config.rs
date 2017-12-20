@@ -27,26 +27,16 @@ use serde::de::{self, Unexpected, Visitor};
 
 use util;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum ConfigError {
-        Limit(msg: String) {
-            description(msg)
-            display("{}", msg)
-        }
-        Address(msg: String) {
-            description(msg)
-            display("config address error: {}", msg)
-        }
-        StoreLabels(msg: String) {
-            description(msg)
-            display("store label error: {}", msg)
-        }
-        Value(msg: String) {
-            description(msg)
-            display("config value error: {}", msg)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum ConfigError {
+    #[fail(display = "{}", _0)]
+    Limit(String),
+    #[fail(display = "config address error: {}", _0)]
+    Address(String),
+    #[fail(display = "store label error: {}", _0)]
+    StoreLabels(String),
+    #[fail(display = "config value error: {}", _0)]
+    Value(String),
 }
 
 pub mod compression_type_level_serde {

@@ -285,7 +285,7 @@ impl ReqContext {
     pub fn check_if_outdated(&self) -> Result<()> {
         let now = Instant::now_coarse();
         if self.deadline <= now {
-            return Err(Error::Outdated(self.deadline, now, self.get_scan_tag()));
+            return Err(Error::Outdated { deadline: self.deadline, not: now, tag: self.get_scan_tag() });
         }
         Ok(())
     }
@@ -569,7 +569,7 @@ fn err_resp(e: Error) -> Response {
             resp.set_locked(info);
             COPR_REQ_ERROR.with_label_values(&["lock"]).inc();
         }
-        Error::Outdated(deadline, now, scan_tag) => {
+        Error::Outdated { deadline, now, tag: scan_tag } => {
             let elapsed =
                 now.duration_since(deadline) + Duration::from_secs(REQUEST_MAX_HANDLE_SECS);
             COPR_REQ_ERROR.with_label_values(&["outdated"]).inc();

@@ -44,16 +44,10 @@ impl Display for Task {
     }
 }
 
-quick_error! {
-    #[derive(Debug)]
-    enum Error {
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("raftlog gc failed {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+enum Error {
+    #[fail(display = "raftlog gc failed {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 pub struct Runner {

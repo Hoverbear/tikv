@@ -537,30 +537,16 @@ pub fn new_local_engine(path: &str, cfs: &[CfName]) -> Result<Box<Engine>> {
     EngineRocksdb::new(path, cfs, Some(cfs_opts)).map(|engine| -> Box<Engine> { Box::new(engine) })
 }
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Request(err: ErrorHeader) {
-            from()
-            description("request to underhook engine failed")
-            display("{:?}", err)
-        }
-        RocksDb(msg: String) {
-            from()
-            description("RocksDb error")
-            display("RocksDb {}", msg)
-        }
-        Timeout(d: Duration) {
-            description("request timeout")
-            display("timeout after {:?}", d)
-        }
-        Other(err: Box<error::Error + Send + Sync>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "{:?}", _0)]
+    Request(ErrorHeader),
+    #[fail(display = "RocksDb {}", _0)]
+    RocksDb(String),
+    #[fail(display = "timeout after {:?}", _0)]
+    Timeout(Duration),
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Send + Sync>),
 }
 
 impl Error {

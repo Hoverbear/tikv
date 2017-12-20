@@ -652,7 +652,7 @@ impl Storage {
         for m in &mutations {
             let size = m.key().encoded().len();
             if size > self.max_key_size {
-                callback(Err(Error::KeyTooLarge(size, self.max_key_size)));
+                callback(Err(Error::KeyTooLarge { size: size, limit: self.max_key_size }));
                 return Ok(());
             }
         }
@@ -829,7 +829,7 @@ impl Storage {
         callback: Callback<()>,
     ) -> Result<()> {
         if key.len() > self.max_key_size {
-            callback(Err(Error::KeyTooLarge(key.len(), self.max_key_size)));
+            callback(Err(Error::KeyTooLarge { size: key.len(), limit: self.max_key_size }));
             return Ok(());
         }
         try!(self.engine
@@ -849,7 +849,7 @@ impl Storage {
         callback: Callback<()>,
     ) -> Result<()> {
         if key.len() > self.max_key_size {
-            callback(Err(Error::KeyTooLarge(key.len(), self.max_key_size)));
+            callback(Err(Error::KeyTooLarge { size: key.len(), limit: self.max_key_size }));
             return Ok(());
         }
         self.engine.async_write(
@@ -922,45 +922,24 @@ impl Clone for Storage {
     }
 }
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Engine(err: EngineError) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Txn(err: txn::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Mvcc(err: mvcc::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Closed {
-            description("storage is closed.")
-        }
-        Other(err: Box<error::Error + Send + Sync>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-        }
-        Io(err: IoError) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        SchedTooBusy {
-            description("scheduler is too busy")
-        }
-        KeyTooLarge(size: usize, limit: usize) {
-            description("max key size exceeded")
-            display("max key size exceeded, size: {}, limit: {}", size, limit)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "engine error: {:?}", _0)]
+    Engine(#[cause] EngineError),
+    #[fail(display = "txn error: {:?}", _0)]
+    Txn(#[cause] txn::Error),
+    #[fail(display = "nvcc error: {:?}", _0)]
+    Mvcc(#[cause] mvcc::Error),
+    #[fail(display = "storage is closed.")]
+    Closed,
+    #[fail(display = "other error: {:?}", _0)]
+    Other(#[cause] Box<error::Error + Send + Sync>),
+    #[fail(display = "io error: {:?}", _0)]
+    Io(#[cause] IoError),
+    #[fail(display = "scheduler is too busy")]
+    SchedTooBusy,
+    #[fail(display = "max key size exceeded, size: {}, limit: {}", size, limit)]
+    KeyTooLarge { size: usize, limit: usize },
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;

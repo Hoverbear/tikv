@@ -39,37 +39,22 @@ use storage::{CfName, Key, Value, CF_DEFAULT};
 use super::metrics::*;
 use raftstore::store::engine::IterOption;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        RequestFailed(e: errorpb::Error) {
-            from()
-            description(e.get_message())
-        }
-        Io(e: IoError) {
-            from()
-            cause(e)
-            description(e.description())
-        }
-        RocksDb(reason: String) {
-            description(reason)
-        }
-        Server(e: RaftServerError) {
-            from()
-            cause(e)
-            description(e.description())
-        }
-        InvalidResponse(reason: String) {
-            description(reason)
-        }
-        InvalidRequest(reason: String) {
-            description(reason)
-        }
-        Timeout(d: Duration) {
-            description("request timeout")
-            display("timeout after {:?}", d)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "request failed: {:?}", _0)]
+    RequestFailed(#[cause] errorpb::Error),
+    #[fail(display = "io error: {:?}", _0)]
+    Io(#[cause] IoError),
+    #[fail(display = "rocksdb error: {:?}", _0)]
+    RocksDb(String),
+    #[fail(display = "raft server error: {:?}", _0)] 
+    Server(#[cause] RaftServerError),
+    #[fail(display = "invalid response: {:?}", _0)]
+    InvalidResponse(String),
+    #[fail(display = "invalid request: {:?}", _0)]
+    InvalidRequest(String),
+    #[fail(display = "timeout after {:?}", _0)]
+    Timeout(Duration),
 }
 
 fn get_tag_from_error(e: &Error) -> &'static str {

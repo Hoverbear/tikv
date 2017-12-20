@@ -41,48 +41,24 @@ use util::codec::Error as CError;
 
 pub use coprocessor::select::xeval::EvalContext as StatementContext;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Io(err: io::Error) {
-            from()
-            description("io error")
-            display("I/O error: {}", err)
-            cause(err)
-        }
-        Type { has: &'static str, expected: &'static str } {
-            description("type error")
-            display("type error: cannot get {:?} result from {:?} expression", expected, has)
-        }
-        Codec(err: util::codec::Error) {
-            from()
-            description("codec error")
-            display("codec error: {}", err)
-            cause(err)
-        }
-        ColumnOffset(offset: usize) {
-            description("column offset not found")
-            display("illegal column offset: {}", offset)
-        }
-        UnknownSignature(sig: ScalarFuncSig) {
-            description("Unknown signature")
-            display("Unknown signature: {:?}", sig)
-        }
-        Truncated {
-            description("Truncated")
-            display("error Truncated")
-        }
-        Overflow {
-            description("Overflow")
-            display("error Overflow")
-        }
-        Other(err: Box<error::Error + Send + Sync>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "I/O error: {}", _0)]
+    Io(#[cause] io::Error),
+    #[fail(display = "type error: cannot get {:?} result from {:?} expression", expected, has)]
+    Type { has: &'static str, expected: &'static str },
+    #[fail(display = "codec error: {}", _0)]
+    Codec(#[cause] util::codec::Error),
+    #[fail(display = "illegal column offset: {}", _0)]
+    ColumnOffset(usize),
+    #[fail(display = "Unknown ssignature: {:?}", _0)]
+    UnknownSignature(ScalarFuncSig),
+    #[fail(display = "error Truncated")]
+    Truncated,
+    #[fail(display = "error Overflow")]
+    Overflow,
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Send + Sync>),
 }
 
 impl From<FromUtf8Error> for Error {

@@ -21,39 +21,24 @@ use std::string::FromUtf8Error;
 use std::error;
 use protobuf;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Io(err: io::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Protobuf(err: protobuf::ProtobufError) {
-            from()
-            cause(err)
-            description(err.description())
-            display("protobuf error {:?}", err)
-        }
-        KeyLength {description("bad format key(length)")}
-        KeyPadding {description("bad format key(padding)")}
-        KeyNotFound {description("key not found")}
-        InvalidDataType(reason: String) {
-            description("invalid data type")
-            display("{}", reason)
-        }
-        Encoding(err: Utf8Error) {
-            from()
-            cause(err)
-            description("enconding failed")
-        }
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "io error {:?}", _0)]
+    Io(#[cause] io::Error),
+    #[fail(display = "protobuf error {:?}", _0)]
+    Protobuf(#[cause] protobuf::ProtobufError),
+    #[fail(display = "bad format key(length)")]
+    KeyLength,
+    #[fail(display = "bad format key(padding)")]
+    KeyPadding,
+    #[fail(display = "key not found")]
+    KeyNotFound,
+    #[fail(display = "{}", _0)]
+    InvalidDataType(String),
+    #[fail(display = "encoding failed")]
+    Encoding(#[cause] Utf8Error),
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 impl Error {

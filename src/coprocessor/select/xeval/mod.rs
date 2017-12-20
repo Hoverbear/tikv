@@ -17,22 +17,14 @@ mod builtin_math;
 
 use util::codec;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Codec(e: codec::Error) {
-            from()
-            description("codec failed")
-        }
-        Expr(s: String) {
-            description("invalid expression")
-            display("{}", s)
-        }
-        Eval(s: String) {
-            description("evaluation failed")
-            display("{}", s)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "codec failed")]
+    Codec(#[cause] codec::Error),
+    #[fail(display = "{}", _0)]
+    Expr(String),
+    #[fail(display = "{}", _0)]
+    Eval(String)
 }
 
 use std::result;

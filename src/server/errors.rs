@@ -29,87 +29,37 @@ use pd::Error as PdError;
 use super::snap::Task as SnapTask;
 use coprocessor::EndPointTask;
 
-quick_error!{
-    #[derive(Debug)]
-    pub enum Error {
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("{:?}", err)
-        }
-        // Following is for From other errors.
-        Io(err: IoError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        Protobuf(err: ProtobufError) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Grpc(err: GrpcError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        Codec(err: CodecError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        AddrParse(err: AddrParseError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        RaftServer(err: RaftServerError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        Engine(err: EngineError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        Storage(err: StorageError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        Pd(err: PdError) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-        SnapWorkerStopped(err: ScheduleError<SnapTask>) {
-            from()
-            display("{:?}", err)
-        }
-        EndPointStopped(err: ScheduleError<EndPointTask>) {
-            from()
-            display("{:?}", err)
-        }
-        Sink {
-            description("failed to poll from mpsc receiver")
-        }
-        Canceled(err: Canceled) {
-            from()
-            cause(err)
-            display("{:?}", err)
-            description(err.description())
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    // #[fail(display = "{:?}", _0)]
+    // Other(#[cause] Box<error::Error + Sync + Send>),
+    // // Following is for From other errors.
+    // #[fail(display = "{:?}", _0)]
+    // Io(#[cause] IoError),
+    // #[fail(display = "{:?}", _0)]
+    // Protobuf(#[cause] ProtobufError),
+    // #[fail(display = "{:?}", _0)]
+    // Grpc(#[cause] GrpcError),
+    // #[fail(display = "{:?}", _0)]
+    // Codec(#[cause] CodecError),
+    // #[fail(display = "{:?}", _0)]
+    // AddrParse(#[cause] AddrParseError),
+    // #[fail(display = "{:?}", _0)]
+    // RaftServer(#[cause] RaftServerError),
+    // #[fail(display = "{:?}", _0)]
+    // Engine(#[cause] EngineError),
+    // #[fail(display = "{:?}", _0)]
+    // Storage(#[cause] StorageError),
+    // #[fail(display = "{:?}", _0)]
+    // Pd(#[cause] PdError),
+    // #[fail(display = "{:?}", _0)]
+    // SnapWorkerStopped(#[cause] ScheduleError<SnapTask>),
+    // #[fail(display = "{:?}", _0)]
+    // EndPointStopped(#[cause] ScheduleError<EndPointTask>),
+    #[fail(display = "failed to poll from mpsc receiver")]
+    Sink,
+    #[fail(display = "{:?}", _0)]
+    Canceled(#[cause] Canceled),
 }
 
 

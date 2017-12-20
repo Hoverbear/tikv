@@ -62,20 +62,12 @@ const SST_FILE_SUFFIX: &'static str = ".sst";
 const DELETE_RETRY_MAX_TIMES: u32 = 6;
 const DELETE_RETRY_TIME_MILLIS: u64 = 500;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Abort {
-            description("abort")
-            display("abort")
-        }
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("snap failed {:?}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "abort")]
+    Abort,
+    #[fail(display = "snap failed {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 pub type Result<T> = result::Result<T, Error>;

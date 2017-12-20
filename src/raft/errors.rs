@@ -15,36 +15,20 @@
 use std::{cmp, io, result};
 use std::error;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        Io(err: io::Error) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        Store(err: StorageError) {
-            from()
-            cause(err)
-            description(err.description())
-        }
-        StepLocalMsg {
-            description("raft: cannot step raft local message")
-        }
-        StepPeerNotFound {
-            description("raft: cannot step as peer not found")
-        }
-        ConfigInvalid(desc: String) {
-            description(desc)
-        }
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "io error: {:?}", _0)]
+    Io(#[cause] io::Error),
+    #[fail(display = "storage error: {:?}", _0)]
+    Store(#[cause] StorageError),
+    #[fail(display = "raft: cannot step raft local message")]
+    StepLocalMsg,
+    #[fail(display = "raft: cannot step as peer not found")]
+    StepPeerNotFound,
+    #[fail(display = "invalid configuration: {:?}", _0)]
+    ConfigInvalid(String),
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 impl cmp::PartialEq for Error {
@@ -61,28 +45,19 @@ impl cmp::PartialEq for Error {
     }
 }
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum StorageError {
-        Compacted {
-            description("log compacted")
-        }
-        Unavailable {
-            description("log unavailable")
-        }
-        SnapshotOutOfDate {
-            description("snapshot out of date")
-        }
-        SnapshotTemporarilyUnavailable {
-            description("snapshot is temporarily unavailable")
-        }
-        Other(err: Box<error::Error + Sync + Send>) {
-            from()
-            cause(err.as_ref())
-            description(err.description())
-            display("unknown error {:?}", err)
-        }
-    }
+
+#[derive(Debug, Fail)]
+pub enum StorageError {
+    #[fail(display = "log compacted")]
+    Compacted,
+    #[fail(display = "log unavailable")]
+    Unavailable,
+    #[fail(display = "snapshot out of date")]
+    SnapshotOutOfDate,
+    #[fail(display = "snapshot is temporarily unavailable")]
+    SnapshotTemporarilyUnavailable,
+    #[fail(display = "unknown error {:?}", _0)]
+    Other(#[cause] Box<error::Error + Sync + Send>),
 }
 
 impl cmp::PartialEq for StorageError {
