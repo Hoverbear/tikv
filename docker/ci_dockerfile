@@ -1,0 +1,25 @@
+FROM ubuntu:latest
+ENV PATH $PATH:/root/.cargo/bin
+# Install all dependencies
+RUN apt-get -qq update -y
+RUN apt-get -qq install -y curl clang git make cmake golang python
+
+# Cache source
+RUN git clone --depth 1 https://github.com/pingcap/tikv /tikv
+
+# Pull in Rust toolchain
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain `tail -n 1 /tikv/RUST_VERSION` -y
+
+RUN echo $PATH
+
+# Ensure we have rustfmt
+RUN rustup component add rustfmt-preview
+
+# Prebuild artifacts to try to save time
+# This should be moved to `./target` in a CI build.
+RUN SKIP_TESTS=true make --directory=/tikv trace_test
+RUN mv /tikv/target /target
+
+# Remove the source now that we don't need it
+WORKDIR /
+RUN rm -rf /tikv
