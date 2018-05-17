@@ -2,7 +2,8 @@ version: 2
 jobs:
   # Since RocksDB and TiKV require more than 4GB RAM to compile so we can't use docker.
   test:
-    machine: true
+    docker:
+      - image: ubuntu:latest
     environment:
       # CircleCI does not support env variable interpolation, set those later
       # Variables used by cargo
@@ -35,9 +36,9 @@ jobs:
       - run:
           name: Installing build dependencies
           command: |
-            sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y;
-            sudo apt-get update -y;
-            sudo apt-get install -y g++-4.8 libdw-dev libelf-dev elfutils binutils-dev curl git python golang
+            add-apt-repository ppa:ubuntu-toolchain-r/test -y;
+            apt-get update -y;
+            apt-get install -y g++-4.8 libdw-dev libelf-dev elfutils binutils-dev curl git python golang
       - run:
           name: Installing Rust toolchain
           command: |
@@ -61,6 +62,9 @@ jobs:
       - run:
           name: Fetching crates
           command: cargo fetch
+      - run:
+          name: Rebuild RocksDB to avoid a memory issue.
+          command: cargo build --features "dev portable sse" --package rocksdb
       - run:
           name: Testing
           command: make trace_test
