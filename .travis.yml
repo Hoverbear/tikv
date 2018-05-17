@@ -1,0 +1,27 @@
+sudo: required
+
+language: generic
+
+cache:
+  directories:
+    - /home/travis/docker
+
+services:
+  - docker
+
+jobs:
+  include:
+    - stage: image
+      script: |
+        travis_wait 40 sleep 2400 &
+        docker build -t ci -f docker/ci_dockerfile .
+        mkdir -p /home/travis/docker
+        docker save ci > /home/travis/docker/ci.tar.gz
+        killall sleep
+    - stage: format
+      script: |
+        zcat /home/travis/docker/ci.tar.gz | docker load
+        docker run -ti --rm ci bash -c "make format && git diff-index --quiet HEAD -- || (git diff; echo please make format and run tests before creating a PR!; exit 1)"
+    - stage: test
+      script: |
+        docker run -ti --rm ci bash -c "make trace_test"
