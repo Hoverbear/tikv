@@ -13,15 +13,31 @@ jobs:
   include:
     - stage: image
       script: |
-        travis_wait 40 sleep 2400 &
-        docker build -t ci -f docker/ci_dockerfile .
+        EXIT=1
+        # See if this is needed
+        git diff-index --name-only "HEAD^" | grep -e docker/ci_dockerfile -e Cargo.lock -e RUST_VERSION || [ ! -f  /home/travis/docker/ci.tar.gz ] || exit 0
+        # Do a build
+        travis_wait 40 'sleep 2400 && exit $EXIT' &
+        docker build -t ci --force-rm --no-cache -f docker/ci_dockerfile .
         mkdir -p /home/travis/docker
         docker save ci > /home/travis/docker/ci.tar.gz
-        killall sleep
+        EXIT=0
+        killall travis_wait
     - stage: format
       script: |
         zcat /home/travis/docker/ci.tar.gz | docker load
-        docker run -ti --rm ci bash -c "make format && git diff-index --quiet HEAD -- || (git diff; echo please make format and run tests before creating a PR!; exit 1)"
+        docker run -ti --rm -v `pwd`:/build ci bash -c <<-EOF
+          cd /build &&
+          ln /cache/target target &&
+          (make format &&
+            git diff-index --quiet HEAD -- ||
+            (git diff; echo please make format and run tests before creating a PR!; exit 1)
+          )
+        EOF
     - stage: test
       script: |
-        docker run -ti --rm ci bash -c "make trace_test"
+        docker run -ti --rm ci bash -c <<-EOF
+          cd /build &&
+          ln /cache/target target &&
+          make trace_test
+        EOF
