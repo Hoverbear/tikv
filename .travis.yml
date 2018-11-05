@@ -1,40 +1,63 @@
+# We need the RAM. :(
 sudo: required
 
-language: generic
-
-cache:
-  directories:
-    - /home/travis/docker
-
-services:
-  - docker
+language: rust
+env:
+  global:
+    - RUST_BACKTRACE=1
+    - RUSTFLAGS="-D warnings"
+    - RUST_TEST_THREADS=1
+    - FAIL_POINT=1
+cache: cargo
 
 jobs:
   include:
-    - stage: image
-      script: |
-        # See if this is needed
-        git diff-index --name-only "HEAD^" | grep -e docker/ci_dockerfile -e Cargo.lock -e rust-toolchain -e .travis.yml || [ ! -f  /home/travis/docker/ci.tar.gz ] || exit 0
-        apt-get install pv --yes
-        # Do a build
-        docker build -t ci --force-rm --no-cache -f docker/ci_dockerfile .
-        df -h
-        docker images
-        mkdir -p /home/travis/docker
-        docker save ci | pv -cN image > /home/travis/docker/ci.tar.gz
+    # Travis limits each "job" to 50 minutes, so we break it up.
     - stage: lint
-      script: |
-        zcat /home/travis/docker/ci.tar.gz | docker load
-        docker run -ti --rm -v `pwd`:/build ci bash -c <<-EOF
-          cd /build &&
-          ln /cache/target target &&
-          (cargo fmt --all -- --check) &&
-          (cargo clippy --all -- -D clippy)
-        EOF
+      install:
+        - rustup component add rustfmt-preview
+        - rustup component add clippy-preview
+      script:
+        - cargo fmt --all -- --check
+        - cargo clippy --all -- -D clippy
+    - stage build
+      script:
+        - cargo build
     - stage: test
-      script: |
-        docker run -ti --rm ci bash -c <<-EOF
-          cd /build &&
-          ln /cache/target target &&
-          cargo test --all --benches &&
-        EOF
+      script:
+        - cargo test
+    - stage: coverage
+      before_script:
+        - RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --tag 0.6.3 --force
+      script:
+        - cargo tarpaulin --no-count --skip-clean --out Xml
+          - bash <(curl -s https://codecov.io/bash)
+
+
+    # - stage: image
+    #   script: |
+    #     # See if this is needed
+    #     git diff-index --name-only "HEAD^" | grep -e docker/ci_dockerfile -e Cargo.lock -e rust-toolchain -e .travis.yml || [ ! -f  /home/travis/docker/ci.tar.gz ] || exit 0
+    #     apt-get install pv --yes
+    #     # Do a build
+    #     docker build -t ci --force-rm --no-cache -f docker/ci_dockerfile .
+    #     df -h
+    #     docker images
+    #     mkdir -p /home/travis/docker
+    #     docker save ci | pv -cN image > /home/travis/docker/ci.tar.gz
+    # - stage: lint
+    #   script: |
+    #     zcat /home/travis/docker/ci.tar.gz | docker load
+    #     docker run -ti --rm -v `pwd`:/build ci bash -c <<-EOF
+    #       cd /build &&
+    #       ln /cache/target target &&
+    #       (cargo fmt --all -- --check) &&
+    #       (cargo clippy --all -- -D clippy)
+    #     EOF
+    # - stage: test
+    #   script: |
+    #     docker run -ti --rm ci bash -c <<-EOF
+    #       cd /build &&
+    #       ln /cache/target target &&
+    #       cargo test --all --benches &&
+    #     EOF
