@@ -21,21 +21,20 @@ jobs:
         docker images
         mkdir -p /home/travis/docker
         docker save ci > /home/travis/docker/ci.tar.gz
-    - stage: format
+    - stage: lint
       script: |
         zcat /home/travis/docker/ci.tar.gz | docker load
         docker run -ti --rm -v `pwd`:/build ci bash -c <<-EOF
           cd /build &&
           ln /cache/target target &&
-          (make format &&
-            git diff-index --quiet HEAD -- ||
-            (git diff; echo please make format and run tests before creating a PR!; exit 1)
-          )
+          (cargo fmt --all -- --check) &&
+          (cargo clippy --all -- -D clippy)
         EOF
     - stage: test
       script: |
         docker run -ti --rm ci bash -c <<-EOF
           cd /build &&
           ln /cache/target target &&
-          make trace_test
+          cargo test --all &&
+          cargo bench --all --no-run
         EOF

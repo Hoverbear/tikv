@@ -12,18 +12,18 @@ WORKDIR /cache
 # Pull in Rust toolchain
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain `tail -n 1 /cache/RUST_VERSION` -y
 
-RUN echo $PATH
-
 # Ensure we have rustfmt
 RUN rustup component add rustfmt-preview
+RUN rustup component add clippy-preview
 
 # Prebuild artifacts to try to save time
 # This should be moved to `./target` in a CI build.
+
 # RocksDB is gigantic, do it individually.
 RUN cargo build --package rocksdb -vvv
 RUN cargo build --all --benches --tests --examples --bin -vvv
-# RUN SKIP_TESTS=true make trace_test
 
 # Wipe everything but the target cache
+# In a test run, copy `/cache/target` to the build folder.
 RUN find . -maxdepth 1 ! -iname target -exec rm -rf {} \;
 
