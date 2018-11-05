@@ -10,7 +10,7 @@ RUN git clone --depth 1 https://github.com/pingcap/tikv /cache
 WORKDIR /cache
 
 # Pull in Rust toolchain
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain `tail -n 1 /cache/RUST_VERSION` -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain `tail -n 1 /cache/rust-toolchain` -y
 
 # Ensure we have rustfmt
 RUN rustup component add rustfmt-preview
