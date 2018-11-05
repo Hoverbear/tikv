@@ -16,7 +16,7 @@ jobs:
         # See if this is needed
         git diff-index --name-only "HEAD^" | grep -e docker/ci_dockerfile -e Cargo.lock -e rust-toolchain -e .travis.yml || [ ! -f  /home/travis/docker/ci.tar.gz ] || exit 0
         # Do a build
-        travis_wait 45 docker build -t ci --force-rm --no-cache -f docker/ci_dockerfile .
+        docker build -t ci --force-rm --no-cache -f docker/ci_dockerfile .
         df -h
         docker images
         mkdir -p /home/travis/docker
