@@ -20,7 +20,7 @@ jobs:
       script:
         - cargo fmt --all -- --check
         - cargo clippy --all -- -D clippy
-    - stage build
+    - stage: build
       script:
         - cargo build --all
     - stage: test
