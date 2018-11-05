@@ -22,10 +22,10 @@ jobs:
         - cargo clippy --all -- -D clippy
     - stage build
       script:
-        - cargo build
+        - cargo build --all
     - stage: test
       script:
-        - cargo test
+        - cargo test --all
     - stage: coverage
       before_script:
         - RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin --git https://github.com/xd009642/tarpaulin --tag 0.6.3 --force
