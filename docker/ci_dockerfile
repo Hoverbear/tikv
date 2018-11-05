@@ -21,7 +21,7 @@ RUN rustup component add clippy-preview
 
 # RocksDB is gigantic, do it individually.
 RUN cargo build --package rocksdb -vvv
-RUN cargo build --all --benches --tests --examples --bin -vvv
+RUN cargo build --all --benches --tests --examples -vvv
 
 # Wipe everything but the target cache
 # In a test run, copy `/cache/target` to the build folder.
