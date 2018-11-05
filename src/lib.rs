@@ -27,6 +27,20 @@
 #![feature(const_int_ops)]
 #![feature(use_extern_macros)]
 #![recursion_limit = "200"]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(
+        module_inception,
+        needless_pass_by_value,
+        unreadable_literal,
+        large_enum_variant,
+        new_without_default_derive,
+        should_implement_trait,
+        implicit_hasher,
+        cyclomatic_complexity,
+        verbose_bit_mask,
+    )
+)]
 // Currently this raises some false positives, so we allow it:
 // https://github.com/rust-lang-nursery/rust-clippy/issues/2638
 #![cfg_attr(feature = "cargo-clippy", allow(nonminimal_bool))]

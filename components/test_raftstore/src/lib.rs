@@ -12,6 +12,10 @@
 // limitations under the License.
 
 #![feature(box_syntax)]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(needless_pass_by_value, new_without_default)
+)]
 
 extern crate futures;
 extern crate grpcio as grpc;

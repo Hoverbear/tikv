@@ -12,6 +12,7 @@
 // limitations under the License.
 
 #![feature(box_syntax)]
+#![cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 
 extern crate futures;
 extern crate kvproto;

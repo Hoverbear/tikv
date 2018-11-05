@@ -10,6 +10,10 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(new_without_default, new_without_default_derive)
+)]
 
 extern crate kvproto;
 extern crate tipb;
