@@ -104,6 +104,9 @@ To build TiKV you'll need to at least have the following installed:
 * `go` - Programming language (required for gRPC)
 * `make` - Build tool (run common workflows)
 * `clang` or `gcc` - C compiler toolchain
+* `zlib` (dev) - Compression library.
+* `protoc` (>3.1.x) - Protobuf compiler
+
 
 ### Getting the repository
 
