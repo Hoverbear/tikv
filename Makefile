@@ -139,11 +139,11 @@ netlify:
 		curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $$(cat rust-toolchain) -y; \
 	fi
 	if ! which cmake ; then \
-		mkdir -p ${HOME}/cmake; \
-		curl -L https://github.com/Kitware/CMake/releases/download/v3.14.0-rc4/cmake-3.14.0-rc4-Linux-x86_64.tar.gz | tar xvz -C ${HOME}/cmake; \
+		mkdir -p /tmp/cmake; \
+		curl -L https://github.com/Kitware/CMake/releases/download/v3.14.0-rc4/cmake-3.14.0-rc4-Linux-x86_64.tar.gz | tar xvz -C /tmp/cmake; \
 	fi
 	if ! which protoc ; then \
-		curl -L https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-osx-x86_64.zip -o protoc.zip; \
-		unzip -o protoc.zip -d /usr/local bin/protoc; \
+		curl -L https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-osx-x86_64.zip -o /tmp/protoc.zip; \
+		unzip /tmp/protoc.zip -d /tmp/protoc; \
 	fi
-	env PATH="${HOME}/.cargo/bin:${HOME}/cmake/bin:${PATH}" cargo doc
+	env PATH="${HOME}/.cargo/bin:/tmp/cmake/bin:/tmp/protoc:${PATH}" cargo doc
