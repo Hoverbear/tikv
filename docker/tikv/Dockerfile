@@ -6,12 +6,12 @@
 #
 # All TiKV tools are built in **release** mode.
 FROM tikv/rust-toolchain as toolchain
-
 ENV ROCKSDB_SYS_SSE 1
 
 COPY . /tikv
 WORKDIR ./tikv
 
+RUN cargo vendor
 RUN make build_dist_release
 
 # Strip debug info to reduce the docker size, may strip later?

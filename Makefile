@@ -285,6 +285,12 @@ docker-extract-binaries:
 	docker cp tikv-binary-extraction-dummy:/tikv-ctl bin/tikv-ctl
 	docker rm -f tikv-binary-extraction-dummy
 
+# Primarily used in docker builds
+build-deps:
+	cargo metadata --no-default-features --features "${ENABLE_FEATURES}" --format-version=1 \
+	| jq -r -f scripts/list-deps.jq
+	# | xargs cargo build --release --no-default-features --features "${ENABLE_FEATURES}"
+
 ## The driver for script/run-cargo.sh
 ## ----------------------------------
 
