@@ -11,7 +11,15 @@ ENV ROCKSDB_SYS_SSE 1
 COPY . /tikv
 WORKDIR ./tikv
 
-RUN cargo vendor
+# We need to adopt [patch] in the Cargo.toml before this works...
+# RUN cargo vendor
+# Then we can remove this dirty hack:
+RUN bash ./scripts/build-deps-for-docker.sh
+
+COPY ./src ./src
+COPY ./cmd ./cmd
+COPY ./components ./components
+
 RUN make build_dist_release
 
 # Strip debug info to reduce the docker size, may strip later?
