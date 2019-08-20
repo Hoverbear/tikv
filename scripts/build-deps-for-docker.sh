@@ -18,13 +18,21 @@ components=$(ls -d ./components/* | xargs -n 1 basename | grep -v "test" | grep 
 # We must remove the profiler from tidb_query. (TODO: Why do we need to grep out `test` and `profiler`?)
 sed -i '/profiler/d' ./components/tidb_query/Cargo.toml
 
+mkdir -p ./src
+echo '' > ./src/lib.rs
 for component in ${components}; do
-    mkdir -p ./${component}src/lib.rs
-    echo '' > ./${component}/src/lib.rs
+    rm -rf ./components/${component}/src/
+    mkdir -p ./components/${component}/src/
+    echo '' > ./components/${component}/src/lib.rs
 done
 
+# TODO: Unclear why not in `components/`
+mkdir -p ./cmd/src/bin/
 echo 'fn main() {}' > ./cmd/src/bin/tikv-ctl.rs
 echo 'fn main() {}' > ./cmd/src/bin/tikv-server.rs
+mkdir -p ./fuzz/src/
+echo '' > ./fuzz/src/lib.rs
+
 
 make build_dist_release
 

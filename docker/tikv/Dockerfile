@@ -8,13 +8,20 @@
 FROM tikv/rust-toolchain as toolchain
 ENV ROCKSDB_SYS_SSE 1
 
-COPY . /tikv
 WORKDIR ./tikv
+COPY Cargo.toml Cargo.toml
+COPY components components
+COPY cmd cmd
+COPY fuzz fuzz
+COPY scripts scripts
+COPY Makefile Makefile
+COPY .git .git
+COPY etc etc
+RUN bash ./scripts/build-deps-for-docker.sh
 
 # We need to adopt [patch] in the Cargo.toml before this works...
 # RUN cargo vendor
 # Then we can remove this dirty hack:
-RUN bash ./scripts/build-deps-for-docker.sh
 
 COPY ./src ./src
 COPY ./cmd ./cmd
