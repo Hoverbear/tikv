@@ -4,12 +4,10 @@ use std::borrow::Cow;
 
 use super::{Error, EvalContext, Result, ScalarFunc};
 use crate::codec::Datum;
-use crypto::{
-    digest::Digest,
-    md5::Md5,
-    sha1::Sha1,
-    sha2::{Sha224, Sha256, Sha384, Sha512},
-};
+use md5::Md5;
+use sha1::Sha1;
+use sha2::{Sha256, Sha512, Sha384, Sha224};
+use digest::Digest;
 use flate2::read::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
 use hex;
@@ -29,9 +27,8 @@ impl ScalarFunc {
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let input = try_opt!(self.children[0].eval_string(ctx, row));
         let mut hasher = Md5::new();
-        let mut buff: [u8; 16] = [0; 16];
         hasher.input(input.as_ref());
-        hasher.result(&mut buff);
+        let buff = hasher.result();
         let md5 = hex::encode(buff).into_bytes();
         Ok(Some(Cow::Owned(md5)))
     }
@@ -43,9 +40,8 @@ impl ScalarFunc {
     ) -> Result<Option<Cow<'a, [u8]>>> {
         let input = try_opt!(self.children[0].eval_string(ctx, row));
         let mut hasher = Sha1::new();
-        let mut buff: [u8; 20] = [0; 20];
         hasher.input(input.as_ref());
-        hasher.result(&mut buff);
+        let buff = hasher.result();
         let sha1 = hex::encode(buff).into_bytes();
         Ok(Some(Cow::Owned(sha1)))
     }
@@ -62,22 +58,22 @@ impl ScalarFunc {
             SHA0 | SHA256 => {
                 let mut hasher = Sha256::new();
                 hasher.input(input.as_ref());
-                hasher.result_str().into_bytes()
+                hasher.result().to_vec()
             }
             SHA224 => {
                 let mut hasher = Sha224::new();
                 hasher.input(input.as_ref());
-                hasher.result_str().into_bytes()
+                hasher.result().to_vec()
             }
             SHA384 => {
                 let mut hasher = Sha384::new();
                 hasher.input(input.as_ref());
-                hasher.result_str().into_bytes()
+                hasher.result().to_vec()
             }
             SHA512 => {
                 let mut hasher = Sha512::new();
                 hasher.input(input.as_ref());
-                hasher.result_str().into_bytes()
+                hasher.result().to_vec()
             }
             _ => return Ok(None),
         };
