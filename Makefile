@@ -262,7 +262,7 @@ docker-tikv-server: docker-tikv
 
 # Remove any previously built images
 docker-clean:
-	docker rmi tikv/tikv tikv/tikv-ctl tikv/tikv-server tikv/tikv-importer
+	docker rmi tikv/tikv tikv/tikv-ctl tikv/tikv-server
 
 # Tag docker iamges with the git hash
 docker-tag-with-git-hash:
