@@ -10,6 +10,7 @@ ENV ROCKSDB_SYS_SSE 1
 
 WORKDIR ./tikv
 COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 COPY components components
 COPY cmd cmd
 COPY fuzz fuzz
