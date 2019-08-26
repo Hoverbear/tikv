@@ -17,7 +17,7 @@ RUN yum clean all \
 	&& yum update -y \
 	&& yum install -y tar wget git which file unzip python-pip openssl-devel \
 		make cmake3 gcc gcc-c++ libstdc++-static pkg-config psmisc gdb \
-		libdwarf-devel elfutils-libelf-devel elfutils-devel binutils-devel \
+		libdwarf-devel elfutils-libelf-devel elfutils-devel binutils-devel golang \
 	&& yum clean all
 
 # CentOS gives cmake 3 a weird binary name, so we link it to something more normal
@@ -34,8 +34,5 @@ COPY rust-toolchain /rust-toolchain
 RUN rustup default $(tail -n 1 rust-toolchain) \
 	&& rustup component add rustfmt --toolchain $(tail -n 1 rust-toolchain) \
 	&& rustup component add clippy --toolchain $(tail -n 1 rust-toolchain)
-
-# We'll want to pre-build the tikv dependencies in a different build step to improve caching
-RUN cargo install cargo-build-deps
 
 ENTRYPOINT ["/bin/bash"]
