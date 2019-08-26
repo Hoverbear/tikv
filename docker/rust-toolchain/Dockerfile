@@ -4,13 +4,13 @@
 
 # We need to use CentOS 7 because many of our users choose this as their deploy machine.
 # Since the glibc it uses (2.17) is from 2012 (https://sourceware.org/glibc/wiki/Glibc%20Timeline)
-# we can't build with Ubuntu or a more modern distro
+# it is our lowest common denominator in terms of distro support.
 FROM centos:7.6.1810
 
 # We require epel packages, so enable the fedora EPEL repo
 RUN yum install -y epel-release
 
-# Normal Deps
+# Install the system dependencies
 # Attempt to clean and rebuild the cache to avoid 404s
 RUN yum clean all \
 	&& yum makecache \
@@ -21,6 +21,7 @@ RUN yum clean all \
 	&& yum clean all
 
 # CentOS gives cmake 3 a weird binary name, so we link it to something more normal
+# This is required by many build scripts, including ours.
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 
 # Install Rustup
@@ -29,7 +30,7 @@ ENV PATH /root/.cargo/bin/:$PATH
 ENV LIBRARY_PATH /usr/local/lib:$LIBRARY_PATH
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
-# Setup the right Rust toolchain
+# Make the expected Rust toolchain default
 COPY rust-toolchain /rust-toolchain
 RUN rustup default $(tail -n 1 rust-toolchain) \
 	&& rustup component add rustfmt --toolchain $(tail -n 1 rust-toolchain) \
