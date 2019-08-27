@@ -77,6 +77,7 @@ BUILD_INFO_GIT_FALLBACK := "Unknown (no git or not git repo)"
 BUILD_INFO_RUSTC_FALLBACK := "Unknown"
 export TIKV_BUILD_TIME := $(shell date -u '+%Y-%m-%d %I:%M:%S')
 export TIKV_BUILD_GIT_HASH := $(shell git rev-parse HEAD 2> /dev/null || echo ${BUILD_INFO_GIT_FALLBACK})
+export TIKV_BUILD_GIT_TAG := $(shell git describe --tag || echo ${BUILD_INFO_GIT_FALLBACK})
 export TIKV_BUILD_GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null || echo ${BUILD_INFO_GIT_FALLBACK})
 export TIKV_BUILD_RUSTC_VERSION := $(shell rustc --version 2> /dev/null || echo ${BUILD_INFO_RUSTC_FALLBACK})
 
@@ -243,6 +244,78 @@ ctl:
 expression: format clippy
 	RUST_BACKTRACE=1 cargo test --features "${ENABLE_FEATURES}" --no-default-features --package tidb_query "expr" -- --nocapture
 
+## The docker driver
+## ------------------
+# The docker image build graph:
+#
+#   centos -> tikv/rust-toolchain -> tikv/tikv -> {tikv/tikv-server, tikv/tikv-ctl}
+#
+# Note: `docker-tikv` and the other image creation make jobs do not depend on prior jobs by design.
+#       While they do depend on having the prior images present, it is perfectly valid to use the images published.
+#       (eg. A new contributor can run `make docker-tikv` and it will pull the `tikv/rust-toolchain`, saving them several minutes)
+
+# Meta job that builds all images.
+# Used each release to generate official Docker images and release binaries.
+docker: docker-rust-toolchain docker-tikv docker-tikv-ctl docker-tikv-server
+
+# Build the `tikv/rust-toolchain` image.
+# Used for later building TiKV, also used in our website tutorials/docs.
+docker-rust-toolchain:
+	docker build -t tikv/rust-toolchain -f docker/rust-toolchain/Dockerfile .
+
+# Build official release image containing all binaries.
+# The binaries are later extracted.
+# Used as an 'collection' for folks who just want everything and don't care about size.
+docker-tikv:
+	docker build -t tikv/tikv -f docker/tikv/Dockerfile .
+
+# Build `tikv/tikv-ctl` image with only the `tikv-ctl` binary.
+docker-tikv-ctl:
+	docker build -t tikv/tikv-ctl -f docker/tikv-ctl/Dockerfile .
+
+# Build `tikv/tikv-server` image with only the `tikv-server` binary.
+docker-tikv-server:
+	docker build -t tikv/tikv-server -f docker/tikv-server/Dockerfile .
+
+# Remove any previously built images.
+# Fails if any containers are running these images.
+docker-clean:
+	docker rmi tikv/tikv tikv/tikv-ctl tikv/tikv-server
+
+# Tag docker images with the git hash
+docker-tag-with-git-hash:
+	docker tag tikv/tikv tikv/tikv:${TIKV_BUILD_GIT_HASH}
+	docker tag tikv/tikv-server tikv/tikv-server:${TIKV_BUILD_GIT_HASH}
+	docker tag tikv/tikv-ctl tikv/tikv-ctl:${TIKV_BUILD_GIT_HASH}
+
+# Tag docker images with the git tag
+docker-tag-with-git-tag:
+	docker tag tikv/tikv tikv/tikv:${TIKV_BUILD_GIT_TAG}
+	docker tag tikv/tikv-server tikv/tikv-server:${TIKV_BUILD_GIT_TAG}
+	docker tag tikv/tikv-ctl tikv/tikv-ctl:${TIKV_BUILD_GIT_TAG}
+
+# Extract binaries from the docker images into the `bin/`
+# These binaries only link to glibc 2.17 or up.
+# Used to generate the official release binaries of TiKV.
+docker-extract-binaries:
+	mkdir -p bin
+	docker rm -f tikv-binary-extraction-dummy || true
+	docker create --name tikv-binary-extraction-dummy tikv/tikv
+	docker cp tikv-binary-extraction-dummy:/tikv-server bin/tikv-server
+	docker cp tikv-binary-extraction-dummy:/tikv-ctl bin/tikv-ctl
+	docker rm -f tikv-binary-extraction-dummy
+
+# Build gzipped tarballs of the binaries and docker images.
+# Used to build a `dist/` folder containing the release artifacts.
+dist-tarballs: docker-extract-binaries
+	mkdir -p dist
+	tar -czf dist/tikv.tar.gz bin/*
+	tar -czf dist/tikv-server.tar.gz bin/tikv-server
+	tar -czf dist/tikv-ctl.tar.gz bin/tikv-ctl
+	docker save tikv/rust-toolchain | gzip > dist/docker-rust-toolchain.tar.gz
+	docker save tikv/tikv | gzip > dist/docker-tikv.tar.gz
+	docker save tikv/tikv-server | gzip > dist/docker-tikv-server.tar.gz
+	docker save tikv/tikv-ctl | gzip > dist/docker-tikv-ctl.tar.gz
 
 ## The driver for script/run-cargo.sh
 ## ----------------------------------
