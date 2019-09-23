@@ -92,8 +92,10 @@ enum Operator {
         target_region_id: u64,
         policy: Arc<RwLock<SchedulePolicy>>,
     },
-    HalfSplitRegion {
+    SplitRegion {
         region_epoch: metapb::RegionEpoch,
+        policy: pdpb::CheckPolicy,
+        keys: Vec<Vec<u8>>,
     },
 }
 
@@ -134,7 +136,9 @@ impl Operator {
                     new_pd_merge_region(region)
                 }
             }
-            Operator::HalfSplitRegion { .. } => new_half_split_region(),
+            Operator::SplitRegion {
+                policy, ref keys, ..
+            } => new_split_region(policy, keys.clone()),
         }
     }
 
@@ -169,9 +173,9 @@ impl Operator {
                 }
                 unreachable!()
             }
-            Operator::HalfSplitRegion { ref region_epoch } => {
-                region.get_region_epoch() != region_epoch
-            }
+            Operator::SplitRegion {
+                ref region_epoch, ..
+            } => region.get_region_epoch() != region_epoch,
             Operator::RemovePeer {
                 ref peer,
                 ref mut policy,
@@ -208,6 +212,7 @@ struct Cluster {
     region_approximate_size: HashMap<u64, u64>,
     region_approximate_keys: HashMap<u64, u64>,
     region_last_report_ts: HashMap<u64, u64>,
+    region_last_report_term: HashMap<u64, u64>,
     base_id: AtomicUsize,
 
     store_stats: HashMap<u64, pdpb::StoreStats>,
@@ -240,6 +245,7 @@ impl Cluster {
             region_approximate_size: HashMap::default(),
             region_approximate_keys: HashMap::default(),
             region_last_report_ts: HashMap::default(),
+            region_last_report_term: HashMap::default(),
             base_id: AtomicUsize::new(1000),
             store_stats: HashMap::default(),
             split_count: 0,
@@ -261,8 +267,7 @@ impl Cluster {
         // assert_eq!(region.get_peers().len(), 1);
         let store_id = store.get_id();
         let mut s = Store::default();
-        s.store = store;;
-
+        s.store = store;
 
         s.region_ids.insert(region.get_id());
 
@@ -320,6 +325,10 @@ impl Cluster {
 
     fn get_region_last_report_ts(&self, region_id: u64) -> Option<u64> {
         self.region_last_report_ts.get(&region_id).cloned()
+    }
+
+    fn get_region_last_report_term(&self, region_id: u64) -> Option<u64> {
+        self.region_last_report_term.get(&region_id).cloned()
     }
 
     fn get_stores(&self) -> Vec<metapb::Store> {
@@ -562,6 +571,7 @@ impl Cluster {
 
     fn region_heartbeat(
         &mut self,
+        term: u64,
         region: metapb::Region,
         leader: metapb::Peer,
         region_stat: RegionStat,
@@ -584,6 +594,7 @@ impl Cluster {
             .insert(region.get_id(), region_stat.approximate_keys);
         self.region_last_report_ts
             .insert(region.get_id(), region_stat.last_report_ts);
+        self.region_last_report_term.insert(region.get_id(), term);
 
         self.handle_heartbeat_version(region.clone())?;
         self.handle_heartbeat_conf_ver(region, leader)
@@ -798,38 +809,39 @@ impl TestPdClient {
         self.schedule_operator(region_id, op);
     }
 
-    pub fn half_split_region(&self, mut region: metapb::Region) {
-        let op = Operator::HalfSplitRegion {
+    pub fn split_region(
+        &self,
+        mut region: metapb::Region,
+        policy: pdpb::CheckPolicy,
+        keys: Vec<Vec<u8>>,
+    ) {
+        let op = Operator::SplitRegion {
             region_epoch: region.take_region_epoch(),
+            policy,
+            keys,
         };
         self.schedule_operator(region.get_id(), op);
     }
 
-    pub fn must_half_split_region(&self, region: metapb::Region) {
-        self.half_split_region(region.clone());
+    pub fn must_split_region(
+        &self,
+        region: metapb::Region,
+        policy: pdpb::CheckPolicy,
+        keys: Vec<Vec<u8>>,
+    ) {
+        let expect_region_count = self.get_regions_number()
+            + if policy == pdpb::CheckPolicy::Usekey {
+                keys.len()
+            } else {
+                1
+            };
+        self.split_region(region.clone(), policy, keys);
         for _ in 1..500 {
             sleep_ms(10);
-
-            let now = self
-                .get_region_by_id(region.get_id())
-                .wait()
-                .unwrap()
-                .unwrap();
-            if (now.get_start_key() != region.get_start_key()
-                && self.get_region(region.get_start_key()).is_ok())
-                || (now.get_end_key() != region.get_end_key()
-                    && self.get_region(now.get_end_key()).is_ok())
-            {
-                if now.get_end_key() != region.get_end_key() {
-                    assert!(now.get_end_key().is_empty());
-                }
-                assert!(
-                    now.get_region_epoch().get_version() > region.get_region_epoch().get_version()
-                );
+            if self.get_regions_number() == expect_region_count {
                 return;
             }
         }
-
         panic!("region {:?} is still not split.", region);
     }
 
@@ -843,7 +855,7 @@ impl TestPdClient {
         self.must_none_peer(region_id, peer);
     }
 
-    pub fn must_merge(&self, from: u64, target: u64) {
+    pub fn merge_region(&self, from: u64, target: u64) {
         let op = Operator::MergeRegion {
             source_region_id: from,
             target_region_id: target,
@@ -851,6 +863,10 @@ impl TestPdClient {
         };
         self.schedule_operator(from, op.clone());
         self.schedule_operator(target, op);
+    }
+
+    pub fn must_merge(&self, from: u64, target: u64) {
+        self.merge_region(from, target);
 
         for _ in 1..500 {
             sleep_ms(10);
@@ -865,6 +881,10 @@ impl TestPdClient {
             return;
         }
         panic!("region {:?} is still not merged.", region.unwrap());
+    }
+
+    pub fn check_merged(&self, from: u64) -> bool {
+        self.get_region_by_id(from).wait().unwrap().is_none()
     }
 
     pub fn region_leader_must_be(&self, region_id: u64, peer: metapb::Peer) {
@@ -939,6 +959,10 @@ impl TestPdClient {
         self.cluster.rl().get_region_last_report_ts(region_id)
     }
 
+    pub fn get_region_last_report_term(&self, region_id: u64) -> Option<u64> {
+        self.cluster.rl().get_region_last_report_term(region_id)
+    }
+
     pub fn set_gc_safe_point(&self, safe_point: u64) {
         self.cluster.wl().set_gc_safe_point(safe_point);
     }
@@ -1009,6 +1033,7 @@ impl PdClient for TestPdClient {
 
     fn region_heartbeat(
         &self,
+        term: u64,
         region: metapb::Region,
         leader: metapb::Peer,
         region_stat: RegionStat,
@@ -1019,7 +1044,7 @@ impl PdClient for TestPdClient {
         let resp = self
             .cluster
             .wl()
-            .region_heartbeat(region, leader.clone(), region_stat);
+            .region_heartbeat(term, region, leader.clone(), region_stat);
         match resp {
             Ok(resp) => {
                 let store_id = leader.get_store_id();

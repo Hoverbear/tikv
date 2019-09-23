@@ -31,10 +31,10 @@ use crate::raftstore::coprocessor::properties::{
 use crate::raftstore::coprocessor::Config as CopConfig;
 use crate::raftstore::store::keys::region_raft_prefix_len;
 use crate::raftstore::store::Config as RaftstoreConfig;
+use crate::server::lock_manager::Config as PessimisticTxnConfig;
 use crate::server::Config as ServerConfig;
 use crate::server::CONFIG_ROCKSDB_GAUGE;
 use crate::storage::config::DEFAULT_DATA_DIR;
-use crate::storage::lock_manager::Config as PessimisticTxnConfig;
 use crate::storage::{Config as StorageConfig, DEFAULT_ROCKSDB_SUB_DIR};
 use engine::rocks::util::config::{self as rocks_config, BlobRunMode, CompressionType};
 use engine::rocks::util::{
@@ -75,7 +75,6 @@ fn memory_mb_for_cf(is_raft_db: bool, cf: &str) -> usize {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct TitanCfConfig {
     pub min_blob_size: ReadableSize,
@@ -125,7 +124,6 @@ macro_rules! cf_config {
     ($name:ident) => {
         #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
         #[serde(default)]
-        #[serde(deny_unknown_fields)]
         #[serde(rename_all = "kebab-case")]
         pub struct $name {
             pub block_size: ReadableSize,
@@ -162,6 +160,7 @@ macro_rules! cf_config {
             pub hard_pending_compaction_bytes_limit: ReadableSize,
             pub prop_size_index_distance: u64,
             pub prop_keys_index_distance: u64,
+            pub enable_doubly_skiplist: bool,
             pub titan: TitanCfConfig,
         }
 
@@ -267,6 +266,10 @@ macro_rules! write_into_metrics {
             .with_label_values(&[$tag, "hard_pending_compaction_bytes_limit"])
             .set($cf.hard_pending_compaction_bytes_limit.0 as f64);
         $metrics
+            .with_label_values(&[$tag, "enable_doubly_skiplist"])
+            .set(($cf.enable_doubly_skiplist as i32).into());
+
+        $metrics
             .with_label_values(&[$tag, "titan_min_blob_size"])
             .set($cf.titan.min_blob_size.0 as f64);
         $metrics
@@ -336,7 +339,9 @@ macro_rules! build_cf_opt {
         cf_opts.set_soft_pending_compaction_bytes_limit($opt.soft_pending_compaction_bytes_limit.0);
         cf_opts.set_hard_pending_compaction_bytes_limit($opt.hard_pending_compaction_bytes_limit.0);
         cf_opts.set_optimize_filters_for_hits($opt.optimize_filters_for_hits);
-
+        if $opt.enable_doubly_skiplist {
+            cf_opts.set_doubly_skiplist();
+        }
         cf_opts
     }};
 }
@@ -385,6 +390,7 @@ impl Default for DefaultCfConfig {
             hard_pending_compaction_bytes_limit: ReadableSize::gb(256),
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
+            enable_doubly_skiplist: true,
             titan: TitanCfConfig::default(),
         }
     }
@@ -450,6 +456,7 @@ impl Default for WriteCfConfig {
             hard_pending_compaction_bytes_limit: ReadableSize::gb(256),
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
+            enable_doubly_skiplist: true,
             titan,
         }
     }
@@ -517,6 +524,7 @@ impl Default for LockCfConfig {
             hard_pending_compaction_bytes_limit: ReadableSize::gb(256),
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
+            enable_doubly_skiplist: true,
             titan,
         }
     }
@@ -574,6 +582,7 @@ impl Default for RaftCfConfig {
             hard_pending_compaction_bytes_limit: ReadableSize::gb(256),
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
+            enable_doubly_skiplist: true,
             titan,
         }
     }
@@ -594,7 +603,6 @@ impl RaftCfConfig {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 // Note that Titan is still an experimental feature. Once enabled, it can't fall back.
 // Forced fallback may result in data loss.
@@ -635,7 +643,6 @@ impl TitanDBConfig {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct DbConfig {
     #[serde(with = "rocks_config::recovery_mode_serde")]
@@ -843,6 +850,7 @@ impl Default for RaftDefaultCfConfig {
             hard_pending_compaction_bytes_limit: ReadableSize::gb(256),
             prop_size_index_distance: DEFAULT_PROP_SIZE_INDEX_DISTANCE,
             prop_keys_index_distance: DEFAULT_PROP_KEYS_INDEX_DISTANCE,
+            enable_doubly_skiplist: true,
             titan: TitanCfConfig::default(),
         }
     }
@@ -865,7 +873,6 @@ impl RaftDefaultCfConfig {
 // But each instance will limit their background jobs according to their own max_background_jobs
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct RaftDbConfig {
     #[serde(with = "rocks_config::recovery_mode_serde")]
@@ -982,7 +989,6 @@ impl RaftDbConfig {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct MetricConfig {
     pub interval: ReadableDuration,
@@ -1030,7 +1036,6 @@ macro_rules! readpool_config {
     ($struct_name:ident, $test_mod_name:ident, $display_name:expr) => {
         #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
         #[serde(default)]
-        #[serde(deny_unknown_fields)]
         #[serde(rename_all = "kebab-case")]
         pub struct $struct_name {
             pub high_concurrency: usize,
@@ -1238,7 +1243,6 @@ impl Default for CoprReadPoolConfig {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Default)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ReadPoolConfig {
     pub storage: StorageReadPoolConfig,
@@ -1255,7 +1259,6 @@ impl ReadPoolConfig {
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(default)]
-#[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct TiKvConfig {
     #[serde(with = "log_level_serde")]
