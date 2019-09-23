@@ -282,6 +282,8 @@ docker-tikv-server:
 docker-clean:
 	docker rmi tikv/tikv tikv/tikv-ctl tikv/tikv-server
 
+docker-tag: docker-tag-with-git-hash docker-tag-with-git-tag
+
 # Tag docker images with the git hash
 docker-tag-with-git-hash:
 	docker tag tikv/tikv tikv/tikv:${TIKV_BUILD_GIT_HASH}
@@ -316,6 +318,8 @@ dist-tarballs: docker-extract-binaries
 	docker save tikv/tikv | gzip > dist/docker-tikv.tar.gz
 	docker save tikv/tikv-server | gzip > dist/docker-tikv-server.tar.gz
 	docker save tikv/tikv-ctl | gzip > dist/docker-tikv-ctl.tar.gz
+
+dist-artifacts: docker docker-tag docker-extract-binaries dist-tarballs
 
 ## The driver for script/run-cargo.sh
 ## ----------------------------------
