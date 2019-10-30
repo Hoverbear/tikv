@@ -2,7 +2,6 @@
 #
 # * `tikv-server`
 # * `tikv-ctl`
-# * `tikv-importer`
 #
 # All TiKV tools are built in **release** mode.
 FROM tikv/rust-toolchain as toolchain
@@ -13,10 +12,6 @@ WORKDIR ./tikv
 COPY . /tikv/
 RUN cargo fetch
 RUN make build_dist_release
-
-# Strip debug info to reduce the docker size, may strip later?
-# RUN strip --strip-debug /tikv/target/release/tikv-server && \
-#     strip --strip-debug /tikv/target/release/tikv-ctl
 
 FROM pingcap/alpine-glibc
 

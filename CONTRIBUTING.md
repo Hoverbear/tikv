@@ -113,6 +113,58 @@ When building with make, cargo will automatically use [pipelined][p] compilation
 To run TiKV as an actual key-value store, you will need to run it as a cluster (a cluster can have just one node, which is useful for testing). You can do this on a single machine or on multiple machines. You need to use [PD](https://github.com/pingcap/pd) to manage the cluster (even if there is just one node on a single machine). Instructions are in our [docs](docs/how-to/deploy/using-binary.md) (if you build TiKV from source, then you don't need to download the binary).
 
 
+## Building releases of TiKV
+
+Release tarballs of TiKV binaries and Docker images can be produced with `make dist-artifacts`. These builds are typically only run for versioned releases. These builds are highly optimized for performance, and simplicity of process, not build time or caching, and typically take over an hour.
+
+Prerequisites:
+
+* A modern Linux host
+* 12+ GB of free memory
+* ~30 GB of free disk space
+* A Docker service
+* GNU Make
+
+```bash
+make dist-artifacts
+```
+
+After, locate the `./dist/` folder and verify the contents:
+
+```bash
+$ tree -h dist/
+dist/
+├── [705M]  docker-rust-toolchain.tar.gz
+├── [ 79M]  docker-tikv-ctl.tar.gz
+├── [111M]  docker-tikv-server.tar.gz
+├── [183M]  docker-tikv.tar.gz
+├── [ 72M]  tikv-ctl.tar.gz
+├── [104M]  tikv-server.tar.gz
+└── [176M]  tikv.tar.gz
+
+0 directories, 7 files
+```
+
+These tarballs can be distributed or hosted for clients.
+
+To download binaries:
+
+```bash
+# From URL
+curl -L $URL | tar -xvz
+# From file
+tar -xvfz $PATH
+```
+
+To pull images (don't add `http://` or `https://` for URLs):
+
+```bash
+# Pull and don't run
+docker pull $URL_OR_FILE
+# Pull and run
+docker run ${OPTIONS} $URL
+```
+
 ### Configuration
 
 Read our configuration guide to learn about various [configuration options](./docs/reference/configuration). There is also a [configuration template](./etc/config-template.toml).
